@@ -11,8 +11,3 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = True
 
-    MAIL_SERVER = 'smtp.gmail.com'
-    MAIL_PORT = 587
-    MAIL_USE_TLS = True
-    MAIL_USERNAME = 'electriccurtaintrack@gmail.com'
-    MAIL_PASSWORD = 'yjpdc02!'
