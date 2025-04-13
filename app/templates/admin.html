@@ -3,7 +3,7 @@
 
 {% block content %}
 <h1>Admin</h1>
-<div class="col-lg-3">
+<div class="col-lg-9">
 <table class="table mt-5">
     <thead>
         <tr>
@@ -26,7 +26,7 @@
                     {{ form.csrf_token() }}
                     {{ form.choice(value=user.id) }}
                     <button class="btn" type="submit">
-                        <i class="bi bi-trash"></i>
+                        <i class="bi bi-trash"> Delete</i>
                     </button>
                 </form>
             </td>
@@ -36,9 +36,9 @@
                     {{ form.choice(value=user.id) }}
                     <button class="btn" type="submit">
                         {% if user.role == "Admin" %}
-                        <i class="bi bi-toggle-on"></i>
+                        <i class="bi bi-toggle-on"> Change Role</i>
                         {% else %}
-                        <i class="bi bi-toggle-off"></i>
+                        <i class="bi bi-toggle-off"> Change Role</i>
                         {% endif %}
                     </button>
                 </form>
