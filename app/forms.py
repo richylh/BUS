@@ -71,15 +71,9 @@ class RegisterForm(FlaskForm):
 
 class RegisterEmail(FlaskForm):
     email = StringField('Your University Email', validators=[DataRequired(), Email()])
-    submit = SubmitField('Verify')
+    submit = SubmitField('Verify Email')
 
 class RegisterEmailVerify(FlaskForm):
     email = StringField('Your University Email', validators=[DataRequired(), Email()])
     verify = StringField('Verification Code', validators=[DataRequired()])
     submit = SubmitField('Verify')
-
-class AdminUserForm(FlaskForm):
-    username = StringField('Username',validators=[DataRequired()])
-    email = StringField('Email',validators=[DataRequired(), Email()])
-    role = SelectField('Role',validators=[DataRequired()],choices=[(0,'Normal'),(1,'Organiser'),(2,'Admin')])
-    submit = SubmitField('Register')
