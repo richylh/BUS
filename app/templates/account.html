@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% import "bootstrap_wtf.html" as wtf %}
+
+{% block content %}
+<h1>My Account</h1>
+
+<p>Hello {{ current_user.username }}</p>
+
+<p>This page is only available to you as the currently logged-in user</p>
+
+<p>The email address we have recorded for you is: <b>{{ current_user.email }}</b></p>
+
+<div class="container">
+    <h3 class="mt-5">Manage account</h3>
+    <ul>
+        <li><a href="{{ url_for('change_pw') }}">Change Password</a></li>
+        <li><a href="{{ url_for('change_email') }}">Update Email</a></li>
+    </ul>
+</div>
+
+{% endblock %}
