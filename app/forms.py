@@ -2,10 +2,10 @@ from random import choices
 
 from flask_login import current_user
 from flask_wtf import FlaskForm
-from wtforms import SubmitField, HiddenField, StringField, PasswordField, BooleanField, SelectField
-from wtforms.fields.numeric import IntegerField
+from wtforms import SubmitField, HiddenField, StringField, PasswordField, BooleanField, SelectField, IntegerField
+#from wtforms.fields.numeric import IntegerField
 from wtforms.fields.simple import TextAreaField
-from wtforms.validators import DataRequired, EqualTo, NumberRange, ValidationError, Email, Optional, Length
+from wtforms.validators import DataRequired, EqualTo, NumberRange, ValidationError, Email, Optional, Length, Regexp, AnyOf
 from app import db
 from app.models import User
 import datetime
@@ -77,3 +77,14 @@ class RegisterEmailVerify(FlaskForm):
     email = StringField('Your University Email', validators=[DataRequired(), Email()])
     verify = StringField('Verification Code', validators=[DataRequired()])
     submit = SubmitField('Verify')
+
+class EventsForm(FlaskForm):
+    edit = HiddenField(default='-1')
+    title = StringField('Event Title', validators=[DataRequired()])
+    text = TextAreaField('Event information', validators=[DataRequired()])
+    date = StringField('Date (dd-mm-yyyy)', validators= [Regexp(r'^\d{2}-\d{2}-\d{4}$', message = "Date must be in format dd-mm-yyyy")])
+    start_time = StringField('Start (hh-mm)', validators= [Regexp(r'^\d{2}-\d{2}$', message = "Start time must be in format hh-mm")])
+    end_time = StringField('End (hh-mm)', validators= [Regexp(r'^\d{2}-\d{2}$', message = "End time must be in format hh-mm")])
+    status = StringField('Status (Open or Closed)', validators=[AnyOf(values=["Open","Closed"], message= "Status must be either 'Open' or 'Closed'")])
+    address = StringField("Address", validators=[DataRequired()])
+    submit = SubmitField('Publish Event')
