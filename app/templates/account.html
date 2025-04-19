@@ -17,5 +17,40 @@
         <li><a href="{{ url_for('change_email') }}">Update Email</a></li>
     </ul>
 </div>
+{% if current_user.role == "Normal"%}
+<h2>My enrollment</h2>
+<div class="col-lg-3">
+<table class="table">
+<thead>
+        <tr>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th>Start</th>
+            <th>End</th>
+            <th>Address</th>
+        </tr>
+    </thead>
+    {% for enrollment in list_of_enrollments %}
+        <tr>
+            <td>{{enrollment.title}}</td>
+              <td>{{enrollment.status}}</td>
+            <td>{{enrollment.date}}</td>
+            <td>{{enrollment.start_time}}</td>
+            <td>{{enrollment.end_time}}</td>
+            <td>{{enrollment.address}}</td>
+            <td><form action="{{ url_for('delete_enrollment') }}" method="post">
+                    {{ choose_form.csrf_token() }}
+                    {{ choose_form.choice(value=enrollment.id) }}
+                    <button class="btn btn-dark">Unenroll</button>
+                </form></td>
+        </tr>
+    {% endfor %}
+
+
+</table>
+</div>
+{% endif %}
+
 
 {% endblock %}
