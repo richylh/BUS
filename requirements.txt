@@ -1,5 +1,10 @@
 flask
 flask-login
+flask-wtf
+flask_sqlalchemy
 sqlalchemy
 requests
 google-genai
+wtforms
+jinja2
+werkzeug
