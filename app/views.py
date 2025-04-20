@@ -18,7 +18,8 @@ import datetime
 import random
 import json
 from sqlalchemy.exc import IntegrityError
-
+import google.generativeai as genai
+from google.genai import types
 
 @app.route("/")
 def home():
@@ -486,6 +487,69 @@ def chat():
         except Exception as e:
             return jsonify({'response': f'Request failed: {str(e)}'}), 500
 
+
+@app.route('/diagnose', methods=['POST'])
+def diagnose():
+    api_key = "AIzaSyCvpZfGKLrpJsawpiM5KmsX6uu0vJvxru8"
+    import google.generativeai as genai
+    genai.configure(api_key=api_key)
+
+    # Get all chat history
+    history = session.get('chat_history', [])
+    chat_text = "\n".join([
+        f"User: {msg['text']}" if msg['role']=='user' else f"AI: {msg['text']}" for msg in history
+    ])
+
+    # Define function declaration
+    diagnose_function = {
+        "name": "diagnose_psychological_problem",
+        "description": "Determine whether the user shows signs of psychological health problems.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "has_psychological_problem": {
+                    "type": "boolean",
+                    "description": "Whether the user has psychological health problems. true means yes, false means no."
+                }
+            },
+            "required": ["has_psychological_problem"]
+        }
+    }
+    tools = [{
+        "function_declarations": [diagnose_function]
+    }]
+
+    prompt = (
+        "Based on the following conversation between the user and the mental health chatbot, determine whether the user shows signs of psychological health problems. "
+        "Please only return a function call, do not output any extra text.\n"
+        + chat_text
+    )
+    contents = [
+        {
+            "role": "user",
+            "parts": [
+                {"text": prompt}
+            ]
+        }
+    ]
+
+    model = genai.GenerativeModel("gemini-2.5-flash-preview-04-17")
+    response = model.generate_content(
+        contents=contents,
+        tools=tools,
+        generation_config={"temperature": 0}
+    )
+
+    # Parse function call
+    function_call = None
+    try:
+        function_call = response.candidates[0].content.parts[0].function_call
+    except Exception:
+        return jsonify({"error": "Diagnosis failed. Please try again."}), 500
+    if function_call and function_call.name == "diagnose_psychological_problem":
+        has_problem = function_call.args.get("has_psychological_problem", False)
+        return jsonify({"has_psychological_problem": has_problem})
+    return jsonify({"error": "Diagnosis failed. Please try again."}), 500
 
 # Error handlers
 # See: https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
