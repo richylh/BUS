@@ -10,6 +10,36 @@
 
 <p>The email address we have recorded for you is: <b>{{ current_user.email }}</b></p>
 
+<h2 class="mt-5">Your Appointment</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                Date
+            </th>
+            <th>
+                Weekday
+            </th>
+            <th>
+                Start
+            </th>
+        </tr>
+    </thead>
+    {% for appo in current_user.appointments %}
+        <tr>
+            <td>
+                {{ appo.date }}
+            </td>
+            <td>
+                {{ appo.weekday }}
+            </td>
+            <td>
+                {{ appo.slot }}
+            </td>
+        </tr>
+    {% endfor %}
+</table>
+
 <div class="container">
     <h3 class="mt-5">Manage account</h3>
     <ul>

@@ -4,7 +4,7 @@ from flask import render_template, redirect, url_for, flash, request, send_file,
 from unicodedata import category
 
 from app import app
-from app.models import User, UniversityEmail, Event, Enrollment
+from app.models import User, UniversityEmail, Appointment, Event, Enrollment
 from app.forms import ChooseForm, LoginForm, ChangePasswordForm, ChangeEmailForm, RegisterForm, RegisterEmail, \
     RegisterEmailVerify, EventsForm
 from flask_login import current_user, login_user, logout_user, login_required, fresh_login_required
@@ -16,6 +16,7 @@ import csv
 import io
 import datetime
 import random
+from sqlalchemy.exc import IntegrityError
 
 
 @app.route("/")
@@ -195,9 +196,90 @@ def events():
     list_of_events = db.session.scalars(q)
     return render_template('events.html', title="Events", list_of_events = list_of_events, choose_form = choose_form)
 
+def generate_schedule():
+    today = datetime.datetime.today().date()
+    slots_per_day = ["09:00", "11:00", "14:00", "16:00"]
+    # slots_per_day = [
+    #     {"start": "09:00", "availability": True},
+    #     {"start": "11:00", "availability": True},
+    #     {"start": "14:00", "availability": True},
+    #     {"start": "16:00", "availability": True},
+    # ]
+    schedule = []
+    for i in range(7):
+        date = today + datetime.timedelta(days=i)
+        schedule.append({
+            "weekday": date.strftime("%A"),
+            "date": date.strftime("%m-%d"),
+            "slots": slots_per_day
+        })
+    return schedule
+
+def check_availability():
+    q = db.select(Appointment).order_by(Appointment.date, Appointment.slot)
+    unavailable_slots = db.session.scalars(q).all()
+    return unavailable_slots
+
 @app.route('/appointments')
 def appointments():
-    return redirect(url_for('home'))
+    form = ChooseForm()
+    schedule = generate_schedule()
+    unavailable_slots = check_availability()
+    return render_template('appointment.html', title='Appointment', schedule=schedule, form=form, unavailable_slots=unavailable_slots)
+
+@app.route("/book", methods=['GET', 'POST'])
+def book():
+    # chosen = -1
+    form = ChooseForm()
+    schedule = generate_schedule()
+    unavailable_slots = check_availability()
+    if not current_user.is_authenticated:
+        flash("Please log in to book an appointment.", "warning")
+        return render_template('appointment.html', title='Appointment', schedule=schedule, form=form, unavailable_slots=unavailable_slots)
+
+    if form.validate_on_submit():
+        slot_id = form.choice.data
+        # previous = form.current_choice.data or -1
+        # if slot_id == previous:
+        #     chosen = -1
+        # else:
+        #     chosen = slot_id
+
+        day_index, slot_index = map(int, slot_id.split("-"))
+        slot_str = schedule[day_index]["slots"][slot_index]
+        date_str = schedule[day_index]["date"]
+        weekday = schedule[day_index]["weekday"]
+
+        # day_index, slot_index = map(int, slot_id.split("-"))
+        # slot_str = schedule[day_index]["slots"][slot_index]["start"]
+        # date_str = schedule[day_index]["date"]
+        # weekday = schedule[day_index]["weekday"]
+
+        this_year = datetime.datetime.today().year
+        date = datetime.datetime.strptime(date_str, "%m-%d").date().replace(year=this_year)
+        slot = datetime.datetime.strptime(slot_str, "%H:%M").time()
+
+        try:
+            # schedule[day_index]["slots"][slot_index]["availability"] = False
+            appointment = Appointment(
+                user_id=current_user.id,
+                date=date,
+                weekday=weekday,
+                slot=slot
+            )
+            current_user.appointments.append(appointment)
+            db.session.commit()
+            return render_template('appointment_booked.html', title = 'Appointment Booked', appointment=appointment)
+
+        except IntegrityError as e:
+            db.session.rollback()
+            error_msg = str(e.orig)
+            if "user_id" in error_msg:
+                flash("You have already booked one.", "warning")
+            elif "date" in error_msg and "slot" in error_msg:
+                flash("Sorry, this slot is unavailable.", "warning")
+
+    return render_template('appointment.html', title='Appointment', schedule=schedule, form=form, unavailable_slots=unavailable_slots)
 
 @app.route('/manager', methods=['GET', 'POST'])
 def manager():

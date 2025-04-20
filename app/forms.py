@@ -27,6 +27,7 @@ def password_policy(form, field):
 
 class ChooseForm(FlaskForm):
     choice = HiddenField('Choice')
+    current_choice = HiddenField()
 
 class LoginForm(FlaskForm):
     username = StringField('Username or Email', validators=[DataRequired()])
