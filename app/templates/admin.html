@@ -47,4 +47,38 @@
     {% endfor %}
 </table>
 </div>
+
+<h5>Student enrollments</h5>
+<div class="col-lg-3">
+<table class="table">
+<thead>
+        <tr>
+            <th>Title</th>
+            <th>Name</th>
+        </tr>
+    </thead>
+    {% for enrollment in list_of_enrollments %}
+        <tr>
+            <td>{{enrollment.title}}</td>
+              <td>{{enrollment.username}}</td>
+            <td><form action="{{ url_for('delete_enrollment_') }}" method="post">
+                    {{ form.csrf_token() }}
+                    {{ form.choice(value=enrollment.id) }}
+                    <button class="btn btn-dark">Remove</button>
+                </form></td>
+        </tr>
+    {% endfor %}
+
+
+</table>
+</div>
+
+
+    <h5>Enrollments statistics</h5>
+<div class="container mb-3">
+    <form action="{{ url_for('download_enrollments_csv') }}" method="post">
+        <button class="btn btn-dark" type="submit">Download Enrollments Statistics</button>
+    </form>
+</div>
+
 {% endblock %}

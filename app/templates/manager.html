@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% import "bootstrap_wtf.html" as wtf %}
+
+{% block content %}
+    <div class="container">
+        {{ wtf.quick_form(form, action="", method="post", id="", novalidate=True, autofocus=False) }}
+    </div>
+
+<h2>My events</h2>
+<div class="col-lg-3">
+<table class="table">
+<thead>
+        <tr>
+            <th>Title</th>
+            <th>Description</th>
+            <th>Date</th>
+            <th>Start</th>
+            <th>End</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    {% for event in list_of_events %}
+        <tr>
+            <td>{{event.title}}</td>
+              <td>{{event.text}}</td>
+            <td>{{event.date}}</td>
+            <td>{{event.start_time}}</td>
+            <td>{{event.end_time}}</td>
+            <td>{{event.status}}</td>
+            <td>{{event.address}}</td>
+            <td><form action="{{ url_for('delete_event') }}" method="post">
+                    {{ choose_form.csrf_token() }}
+                    {{ choose_form.choice(value=event.id) }}
+                    <button class="btn" type="submit">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </form></td>
+            <td><div><form action="{{ url_for('edit_event', event_id=event.id) }}" method="get" style="display:inline;">
+                       <button type="submit" class="btn" title="Edit">
+                            <i class="bi bi-pencil"></i>
+                    </button>
+                 </form></div></td>
+        </tr>
+    {% endfor %}
+
+
+
+</table>
+</div>
+    <h5>Enrollments statistics</h5>
+<div class="container mb-3">
+    <form action="{{ url_for('download_enrollments_csv') }}" method="post">
+        <button class="btn btn-dark" type="submit">Download Enrollments Statistics</button>
+    </form>
+</div>
+
+{% endblock %}

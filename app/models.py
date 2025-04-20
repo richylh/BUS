@@ -20,6 +20,7 @@ class User(UserMixin, db.Model):
     role: so.Mapped[str] = so.mapped_column(sa.String(10), default="Normal")
     events: so.Mapped[list['Event']] = relationship(back_populates='user', cascade='all, delete-orphan')
     appointments: so.Mapped[list['Appointment']] = relationship(back_populates='user', cascade='all, delete-orphan')
+    enrollments: so.Mapped[list['Enrollment']] = relationship(back_populates='user', cascade='all, delete-orphan')
 
     def __repr__(self):
         pwh= 'None' if not self.password_hash else f'...{self.password_hash[-5:]}'
@@ -40,12 +41,48 @@ class Event(db.Model):
     __tablename__ = 'events'
 
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
-    event_name: so.Mapped[str] = so.mapped_column(sa.String(64))
-    description: so.Mapped[str] = so.mapped_column(sa.String(1024))
-    event_datetime: so.Mapped[datetime] = so.mapped_column(sa.DateTime)
-    user_id: so.Mapped[int] = so.mapped_column(ForeignKey('users.id'), index=True)
+    title: so.Mapped[str] = so.mapped_column(sa.String(64), unique=True)
+    text: so.Mapped[str] = so.mapped_column(sa.String(3200))
+    #user_id: so.Mapped[int] = so.mapped_column(ForeignKey('users.id'), index=True)
+    username: so.Mapped[str] = so.mapped_column(ForeignKey('users.username'), index=True)
     user: so.Mapped['User'] = relationship(back_populates='events')
     status: so.Mapped[str] = so.mapped_column(sa.String(64),default='Open')
+    date: so.Mapped[str] = so.mapped_column(sa.String(64),default='None')
+    start_time: so.Mapped[str] = so.mapped_column(sa.String(64),default='None')
+    end_time: so.Mapped[str] = so.mapped_column(sa.String(64),default='None')
+    address: so.Mapped[str] = so.mapped_column(sa.String(256))
+
+
+
+
+
+
+class Enrollment(db.Model):
+    __tablename__ = 'enrollments'
+
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    title: so.Mapped[str] = so.mapped_column(sa.String(64))
+    #user_id: so.Mapped[int] = so.mapped_column(ForeignKey('users.id'), index=True)
+    username: so.Mapped[str] = so.mapped_column(ForeignKey('users.username'), index=True)
+    user: so.Mapped['User'] = relationship(back_populates='enrollments')
+    status: so.Mapped[str] = so.mapped_column(sa.String(64),default='Open')
+    date: so.Mapped[str] = so.mapped_column(sa.String(64),default='None')
+    start_time: so.Mapped[str] = so.mapped_column(sa.String(64),default='None')
+    end_time: so.Mapped[str] = so.mapped_column(sa.String(64),default='None')
+    address: so.Mapped[str] = so.mapped_column(sa.String(256))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title':self.title,
+            'username': self.username
+        }
+
+
+
+
+
+
 
 class Appointment(db.Model):
     __tablename__ = 'appointments'
@@ -67,3 +104,5 @@ class UniversityEmail(db.Model):
     email: so.Mapped[str] = so.mapped_column(sa.String(120), index=True, unique=True)
     username: so.Mapped[str] = so.mapped_column(sa.String(64))
     college: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
+
+

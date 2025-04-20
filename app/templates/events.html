@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Events</h1>
+
+<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap:16px;">
+    {% for event in list_of_events %}
+
+             <div style="border: 1px solid black; padding: 8px;">
+
+              <div><strong>{{event.title}}</strong></div>
+              <div>{{event.text}}</div>
+                 <div>Date: {{event.date}}</div>
+                 <div style="font-size: 0.9em;">Start: {{event.start_time}}</div>
+                 <div style="font-size: 0.9em;">End: {{event.end_time}}</div>
+                 <div>Status: {{event.status}}</div>
+                 <div>Address: {{event.address}}</div>
+
+                  <div style="font-size: 0.8em;">Organiser: {{event.username}}</div>
+                 {% if current_user.role == "Organiser" and current_user.username == event.username %}
+                 <div style = "display: flex"> <form action="{{ url_for('delete_event_') }}" method="post">
+                    {{ choose_form.csrf_token() }}
+                    {{ choose_form.choice(value=event.id) }}
+                    <button class="btn" type="submit">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </form> <form action="{{ url_for('edit_event', event_id=event.id) }}" method="get" style="display:inline;">
+                       <button type="submit" class="btn" title="Edit">
+                            <i class="bi bi-pencil"></i>
+                    </button>
+                 </form></div>
+
+                 {% endif %}
+                 {% if current_user.role == "Admin" %}
+                 <div style = "display: flex"> <form action="{{ url_for('delete_event_') }}" method="post">
+                    {{ choose_form.csrf_token() }}
+                    {{ choose_form.choice(value=event.id) }}
+                    <button class="btn" type="submit">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                 </form></div>
+                 {% endif %}
+
+                 {% if current_user.role == "Normal" %}
+                 <div style = "display: flex"> <form action="{{ url_for('enrollment', event_id=event.id) }}" method="get" style="display:inline;">
+                            <button class="btn btn-dark">Enroll</button>
+                 </form>
+                 </div>
+                 {% endif %}
+
+
+             </div>
+    {% endfor %}
+</div>
+
+{% endblock %}

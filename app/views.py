@@ -1,8 +1,12 @@
+from os import write
+
 from flask import render_template, redirect, url_for, flash, request, send_file, send_from_directory,session
+from unicodedata import category
+
 from app import app
-from app.models import User, UniversityEmail, Appointment
+from app.models import User, UniversityEmail, Appointment, Event, Enrollment
 from app.forms import ChooseForm, LoginForm, ChangePasswordForm, ChangeEmailForm, RegisterForm, RegisterEmail, \
-    RegisterEmailVerify
+    RegisterEmailVerify, EventsForm
 from flask_login import current_user, login_user, logout_user, login_required, fresh_login_required
 import sqlalchemy as sa
 from app import db
@@ -22,7 +26,10 @@ def home():
 @app.route("/account")
 @login_required
 def account():
-    return render_template('account.html', title="Account")
+    choose_form = ChooseForm()
+    q = db.select(Enrollment).where(Enrollment.username == current_user.username)
+    list_of_enrollments = db.session.scalars(q)
+    return render_template('account.html', title="Account", list_of_enrollments = list_of_enrollments, choose_form = choose_form)
 
 @app.route("/admin")
 @login_required
@@ -32,7 +39,9 @@ def admin():
     form = ChooseForm()
     q = db.select(User)
     user_lst = db.session.scalars(q)
-    return render_template('admin.html', title="Admin", user_lst=user_lst, form=form)
+    q = db.select(Enrollment)
+    list_of_enrollments = db.session.scalars(q)
+    return render_template('admin.html', title="Admin", user_lst=user_lst, form=form, list_of_enrollments = list_of_enrollments)
 
 @app.route('/delete_user', methods=['POST'])
 def delete_user():
@@ -179,9 +188,13 @@ def logout():
     logout_user()
     return redirect(url_for('home'))
 
-@app.route('/events')
+@app.route('/events',  methods=['GET', 'POST'])
+@login_required
 def events():
-    return redirect(url_for('home'))
+    choose_form = ChooseForm()
+    q = db.select(Event)
+    list_of_events = db.session.scalars(q)
+    return render_template('events.html', title="Events", list_of_events = list_of_events, choose_form = choose_form)
 
 def generate_schedule():
     today = datetime.datetime.today().date()
@@ -267,6 +280,160 @@ def book():
                 flash("Sorry, this slot is unavailable.", "warning")
 
     return render_template('appointment.html', title='Appointment', schedule=schedule, form=form, unavailable_slots=unavailable_slots)
+
+@app.route('/manager', methods=['GET', 'POST'])
+def manager():
+    form = EventsForm()
+    choose_form = ChooseForm()
+    if form.validate_on_submit() and int(form.edit.data) == -1:
+        new_event = Event(title=form.title.data, text=form.text.data, username=current_user.username, status = form.status.data, date = form.date.data, start_time = form.start_time.data, end_time = form.end_time.data, address = form.address.data )
+        db.session.add(new_event)
+        db.session.commit()
+        return redirect(url_for('manager'))
+    q = db.select(Event).where(Event.username == current_user.username)
+    list_of_events = db.session.scalars(q)
+    return render_template('manager.html', title="Event Management", form=form, list_of_events=list_of_events,
+                           choose_form=choose_form)
+
+
+
+@app.route("/delete_event", methods=['POST'])
+def delete_event():
+    form = ChooseForm()
+    id = form.choice.data
+    if form.validate_on_submit():
+        event = db.session.get(Event, id )
+        enroll = Enrollment.query.filter_by(title = event.title).first()
+        if enroll is None:
+            db.session.delete(event)
+            db.session.commit()
+            return redirect(url_for('manager'))
+        else:
+            db.session.delete(event)
+            db.session.delete(enroll)
+            db.session.commit()
+            return redirect(url_for('manager'))
+
+
+
+@app.route("/delete_event_", methods=['POST'])
+def delete_event_():
+    form = ChooseForm()
+    id = form.choice.data
+    if form.validate_on_submit():
+        event = db.session.get(Event, id )
+        enroll = Enrollment.query.filter_by(title = event.title).first()
+        if enroll is None:
+            db.session.delete(event)
+            db.session.commit()
+            return redirect(url_for('events'))
+        else:
+            db.session.delete(event)
+            db.session.delete(enroll)
+            db.session.commit()
+            return redirect(url_for('events'))
+
+
+@app.route("/edit_event/<int:event_id>", methods=['GET','POST'])
+def edit_event(event_id):
+    choose_form = ChooseForm()
+    event_first = db.session.get(Event, event_id)
+    form = EventsForm(edit = event_first.id,title=event_first.title, text=event_first.text, username = event_first.username, status = event_first.status, date = event_first.date, start_time = event_first.start_time, end_time = event_first.end_time, address = event_first.address )
+    if form.validate_on_submit():
+        event = db.session.get(Event, int(form.edit.data))
+        enroll = Enrollment.query.filter_by(title=event_first.title).first()
+        event.title = form.title.data
+        event.text = form.text.data
+        event.status = form.status.data
+        event.date = form.date.data
+        event.start_time = form.start_time.data
+        event.end_time = form.end_time.data
+        event.address = form.address.data
+        if enroll is None:
+            db.session.commit()
+            return redirect(url_for('manager'))
+        else:
+            enroll.title = form.title.data
+            enroll.status = form.status.data
+            enroll.date = form.date.data
+            enroll.start_time = form.start_time.data
+            enroll.end_time = form.end_time.data
+            enroll.address = form.address.data
+            db.session.commit()
+            return redirect(url_for('manager'))
+    q = db.select(Event).where(Event.username == current_user.username)
+    list_of_events = db.session.scalars(q)
+    return render_template("manager.html", title="Event Management", form=form, choose_form=choose_form,
+                           list_of_events = list_of_events)
+
+
+@app.route("/enrollment/<int:event_id>", methods=['GET','POST'])
+def enrollment(event_id):
+    event_first = db.session.get(Event, event_id)
+    items = Enrollment.query.filter_by(title = event_first.title).all()
+    if not items:
+        enroll = Enrollment(title=event_first.title, username=current_user.username,  date = event_first.date, start_time = event_first.start_time, end_time = event_first.end_time, address = event_first.address )
+        db.session.add(enroll)
+        db.session.commit()
+        flash('Successfully enrolled in the event!', 'success')
+        return redirect(url_for('events'))
+    else:
+        flash('Already enrolled in the event', 'warning')
+        return redirect(url_for('events'))
+
+
+
+
+
+@app.route("/delete_enrollment", methods=['POST'])
+def delete_enrollment():
+    form = ChooseForm()
+    id = form.choice.data
+    if form.validate_on_submit():
+        enroll = db.session.get(Enrollment, id )
+        db.session.delete(enroll)
+        db.session.commit()
+        return redirect(url_for('account'))
+    return redirect(url_for('admin'))
+
+
+
+@app.route("/delete_enrollment_", methods=['POST'])
+def delete_enrollment_():
+    form = ChooseForm()
+    id = form.choice.data
+    if form.validate_on_submit():
+        enroll = db.session.get(Enrollment, id )
+        db.session.delete(enroll)
+        db.session.commit()
+        return redirect(url_for('admin'))
+    return redirect(url_for('admin'))
+
+
+
+@app.route("/download_enrollments_csv", methods=['GET', 'POST'])
+def download_enrollments_csv():
+    enrollment = Enrollment.query.all()
+    if not enrollment:
+        headers_ = ['id', 'title', 'username']
+        mem_str = io.StringIO()
+        writer_ = csv.writer(mem_str)
+        writer_.writerow(headers_)
+        mem_bytes = io.BytesIO()
+        mem_bytes.write(mem_str.getvalue().encode(encoding="utf-8"))
+        mem_bytes.seek(0)
+        return send_file(mem_bytes, as_attachment=True, download_name='enrollments.csv', mimetype='text/csv')
+    else:
+        headers_ = ['id', 'title', 'username']
+        rows = [enrol.to_dict().values() for enrol in enrollment]
+        mem_str = io.StringIO()
+        writer_ = csv.writer(mem_str)
+        writer_.writerow(headers_)
+        writer_.writerows(rows)
+        mem_bytes = io.BytesIO()
+        mem_bytes.write(mem_str.getvalue().encode(encoding="utf-8"))
+        mem_bytes.seek(0)
+        return send_file(mem_bytes, as_attachment=True, download_name='enrollments.csv', mimetype='text/csv')
 
 
 # Error handlers
