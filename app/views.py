@@ -441,20 +441,48 @@ def download_enrollments_csv():
 @login_required
 def chat():
     import google.genai as genai
+    from google.genai import types
+    from flask import session
+    system_instruction = (
+        "You are UniSupport Bot, an empathetic AI assistant for UK university students on the UniSupport app. "
+        "Your job is to provide initial guidance, reliable information, and helpful resources about mental wellbeing, stress, study habits, and student life. "
+        "- Be calm, supportive, and non-judgmental. "
+        "- You can share general wellbeing info, simple coping tips, and guide users to UniSupport app features. "
+        "- Do NOT give medical advice, diagnosis, or act as a replacement for professional help. "
+        "- In crisis (e.g., self-harm, suicide risk), clearly state your limits and provide UK emergency contacts: 999 and Samaritans 116 123. Do not try to counsel in crisis. "
+        "- For ongoing/serious mental health issues, gently encourage seeking professional support. "
+        "Always prioritize user safety and stay within your defined role."
+    )
     if request.method == 'GET':
+        session['chat_history'] = []  
         return render_template('chat.html', title='Chat')
     if request.method == 'POST':
         data = request.get_json()
         user_message = data.get('message', '')
         api_key = "AIzaSyCvpZfGKLrpJsawpiM5KmsX6uu0vJvxru8"
         client = genai.Client(api_key=api_key)
+        history = session.get('chat_history', [])
+        contents = []
+        for msg in history:
+            if msg['role'] == 'user':
+                contents.append({"role": "user", "parts": [{"text": msg['text']}]})
+            elif msg['role'] == 'ai':
+                contents.append({"role": "model", "parts": [{"text": msg['text']}]})
+        contents.append({"role": "user", "parts": [{"text": user_message}]})
         try:
             response = client.models.generate_content(
-                model="gemini-2.5-pro-exp-03-25",
-                contents=user_message
+                model="gemini-2.5-flash-preview-04-17",
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    thinking_config=types.ThinkingConfig(thinking_budget=0)
+                )
             )
             ai_text = response.text if hasattr(response, 'text') else str(response)
-            return jsonify({'response': ai_text})
+            session['chat_history'].append({'role': 'user', 'text': user_message})
+            session['chat_history'].append({'role': 'ai', 'text': ai_text})
+            session.modified = True
+            return jsonify({'response': ai_text, 'history': session['chat_history']})
         except Exception as e:
             return jsonify({'response': f'Request failed: {str(e)}'}), 500
 
