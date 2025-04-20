@@ -2,7 +2,7 @@ from typing import Optional
 import sqlalchemy as sa
 import sqlalchemy.orm as so
 from flask_login import UserMixin
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import db, login
@@ -19,7 +19,7 @@ class User(UserMixin, db.Model):
     password_hash: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
     role: so.Mapped[str] = so.mapped_column(sa.String(10), default="Normal")
     events: so.Mapped[list['Event']] = relationship(back_populates='user', cascade='all, delete-orphan')
-    appointments: so.Mapped[list['Appoitment']] = relationship(back_populates='user', cascade='all, delete-orphan')
+    appointments: so.Mapped[list['Appointment']] = relationship(back_populates='user', cascade='all, delete-orphan')
 
     def __repr__(self):
         pwh= 'None' if not self.password_hash else f'...{self.password_hash[-5:]}'
@@ -47,18 +47,19 @@ class Event(db.Model):
     user: so.Mapped['User'] = relationship(back_populates='events')
     status: so.Mapped[str] = so.mapped_column(sa.String(64),default='Open')
 
-
-class Appoitment(db.Model):
+class Appointment(db.Model):
     __tablename__ = 'appointments'
+    __table_args__ = (
+        UniqueConstraint('date', 'slot', name='unique_slot_per_time'),
+    )
 
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
-    appointment_name: so.Mapped[str] = so.mapped_column(sa.String(64))
-    description: so.Mapped[str] = so.mapped_column(sa.String(1024))
-    app_datetime: so.Mapped[datetime] = so.mapped_column(sa.DateTime)
-    user_id: so.Mapped[int] = so.mapped_column(ForeignKey('users.id'), index=True)
+    date: so.Mapped[datetime.date] = so.mapped_column(sa.Date)
+    weekday: so.Mapped[str] = so.mapped_column(sa.String(16))
+    slot: so.Mapped[datetime.time] = so.mapped_column(sa.Time)
+    user_id: so.Mapped[int] = so.mapped_column(ForeignKey('users.id'), index=True, unique=True)
     user: so.Mapped['User'] = relationship(back_populates='appointments')
-    status: so.Mapped[str] = so.mapped_column(sa.String(64), default='Open')
-
+    # status: so.Mapped[str] = so.mapped_column(sa.String(64), default='Open')
 
 class UniversityEmail(db.Model):
     __tablename__ = 'university_emails'

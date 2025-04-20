@@ -1,5 +1,5 @@
 from flask import Flask
-from pymupdf import message
+# from pymupdf import message
 
 from config import Config
 from jinja2 import StrictUndefined

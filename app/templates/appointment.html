@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% import "bootstrap_wtf.html" as wtf %}
+
+{% block content %}
+<style>
+    th, td {
+        border: 1px solid #aaaaaa;
+        padding: 10px;
+        text-align: center;
+        vertical-align: middle;
+        word-wrap: break-word;
+    }
+    th {
+        background-color: #f8f8f8;
+    }
+    .slot {
+        padding: 4px 8px;
+        background-color: #f0f8ff;
+        border: 1px solid #cccccc;
+        font-family: monospace;
+        font-size: 12px;
+        border-radius: 4px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+</style>
+<h1>Appointment</h1>
+<div>
+<table>
+    <thead>
+        <tr>
+            {% for day in schedule %}
+                <th>
+                    {{ day.weekday }}<br>
+                    <small>{{ day.date }}</small>
+                </th>
+            {% endfor %}
+        </tr>
+    </thead>
+    {% for i in range(schedule[0].slots|length) %}
+    <tr>
+        {% for j in range(schedule|length) %}
+            {% set slot = schedule[j].slots[i] %}
+            {% set slot_id = j ~ '-' ~ i %}
+            <td>
+                <div class="slot">
+                    <form action="{{ url_for('book') }}" method="post">
+                        {{ form.csrf_token() }}
+                        {{ form.choice(value=slot_id) }}
+                        <button type="submit"
+                            class="w-100 text-start btn">
+                            <div>
+                                {{ slot }}
+                            </div>
+                        </button>
+                    </form>
+                </div>
+            </td>
+        {% endfor %}
+    </tr>
+    {% endfor %}
+</table>
+</div>
+<div class="mt-4">
+    <h5>Unavailable Slots：</h5>
+    {% if unavailable_slots %}
+    <div>
+        <ul>
+            {% for appo in unavailable_slots %}
+                <li>{{ appo.weekday }} {{ appo.date }}, {{ appo.slot }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endif %}
+</div>
+{% endblock %}

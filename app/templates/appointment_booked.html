@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% import "bootstrap_wtf.html" as wtf %}
+
+{% block content %}
+    <div class="container">
+        <h1>Book successful</h1>
+        <p>name: {{ appointment.user.username }}</p>
+        <p>time: {{ appointment.date }} {{ appointment.weekday }} {{ appointment.slot }}</p>
+    </div>
+{% endblock %}
