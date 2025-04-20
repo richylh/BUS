@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>AI Chat Room</h2>
+    <div id="chatbox" style="height: 400px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; background: #f9f9f9; margin-bottom: 20px;"></div>
+    <div class="input-group">
+        <input type="text" id="userInput" class="form-control" placeholder="Type your message..." autocomplete="off">
+        <button id="sendButton" class="btn btn-primary">Send</button>
+    </div>
+</div>
+<script>
+const chatbox = document.getElementById('chatbox');
+const userInput = document.getElementById('userInput');
+const sendButton = document.getElementById('sendButton');
+
+function appendMessage(sender, text) {
+    const msgDiv = document.createElement('div');
+    msgDiv.innerHTML = `<b>${sender}:</b> ${text}`;
+    msgDiv.style.marginBottom = '10px';
+    chatbox.appendChild(msgDiv);
+    chatbox.scrollTop = chatbox.scrollHeight;
+}
+
+function sendMessage() {
+    const message = userInput.value.trim();
+    if (!message) return;
+    appendMessage('You', message);
+    userInput.value = '';
+    fetch("{{ url_for('chat') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        },
+        body: JSON.stringify({message: message})
+    })
+    .then(response => response.json())
+    .then(data => {
+        appendMessage('AI', data.response);
+    })
+    .catch(err => {
+        appendMessage('System', 'Request failed, please try again later.');
+    });
+}
+
+sendButton.addEventListener('click', sendMessage);
+userInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        sendMessage();
+    }
+});
+</script>
+{% endblock %}

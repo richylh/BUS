@@ -44,7 +44,9 @@
                 <li class="nav-item">
                     <a class="nav-link" aria-current="page" href="{{ url_for('logout') }}">Logout {{ current_user.username }}</a>
                 </li>
-                {% endif %}
+                <li class="nav-item">
+                    <a class="nav-link" aria-current="page" href="{{ url_for('chat') }}">Chat</a>
+                </li>
                 <li class="nav-item">
                     <a class="nav-link" aria-current="page" href="{{ url_for('account') }}">Account</a>
                 </li>
@@ -57,6 +59,7 @@
                 <li class="nav-item">
                     <a class="nav-link" aria-current="page" href="{{ url_for('manager') }}">Event Management</a>
                 </li>
+                {% endif %}
                 {% endif %}
             </ul>
         </div>
@@ -87,4 +90,3 @@
 
 </body>
 </html>
-

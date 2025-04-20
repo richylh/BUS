@@ -1,6 +1,6 @@
 from os import write
 
-from flask import render_template, redirect, url_for, flash, request, send_file, send_from_directory,session
+from flask import render_template, redirect, url_for, flash, request, send_file, send_from_directory,session, jsonify
 from unicodedata import category
 
 from app import app
@@ -16,6 +16,7 @@ import csv
 import io
 import datetime
 import random
+import json
 from sqlalchemy.exc import IntegrityError
 
 
@@ -434,6 +435,28 @@ def download_enrollments_csv():
         mem_bytes.write(mem_str.getvalue().encode(encoding="utf-8"))
         mem_bytes.seek(0)
         return send_file(mem_bytes, as_attachment=True, download_name='enrollments.csv', mimetype='text/csv')
+
+
+@app.route('/chat', methods=['GET', 'POST'])
+@login_required
+def chat():
+    import google.genai as genai
+    if request.method == 'GET':
+        return render_template('chat.html', title='Chat')
+    if request.method == 'POST':
+        data = request.get_json()
+        user_message = data.get('message', '')
+        api_key = "AIzaSyCvpZfGKLrpJsawpiM5KmsX6uu0vJvxru8"
+        client = genai.Client(api_key=api_key)
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.5-pro-exp-03-25",
+                contents=user_message
+            )
+            ai_text = response.text if hasattr(response, 'text') else str(response)
+            return jsonify({'response': ai_text})
+        except Exception as e:
+            return jsonify({'response': f'Request failed: {str(e)}'}), 500
 
 
 # Error handlers
