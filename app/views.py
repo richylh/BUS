@@ -500,6 +500,40 @@ def diagnose():
         f"User: {msg['text']}" if msg['role']=='user' else f"AI: {msg['text']}" for msg in history
     ])
 
+    prompt = (
+        "Based on the following conversation between the user and the mental health chatbot, "
+        "determine whether the user shows signs of psychological health problems. "
+        "Respond with a JSON object: {\"has_psychological_problem\": true/false}.\n"
+        + chat_text
+    )
+    model = genai.GenerativeModel("gemini-2.5-flash-preview-04-17")
+    try:
+        response = model.generate_content(
+            contents=[{"role": "user", "parts": [{"text": prompt}]}],
+            generation_config={
+                "temperature": 0,
+                "response_mime_type": "application/json",
+                "response_schema": {
+                    "type": "object",
+                    "properties": {
+                        "has_psychological_problem": {
+                            "type": "boolean",
+                            "description": "Whether the user has psychological health problems."
+                        }
+                    },
+                    "required": ["has_psychological_problem"]
+                }
+            }
+        )
+        import json
+        result = response.text
+        data = json.loads(result)
+        has_problem = data.get("has_psychological_problem", False)
+        return jsonify({"has_psychological_problem": has_problem})
+    except Exception:
+        return jsonify({"error": "Diagnosis failed. Please try again."}), 500
+
+    '''
     # Define function declaration
     diagnose_function = {
         "name": "diagnose_psychological_problem",
@@ -518,7 +552,6 @@ def diagnose():
     tools = [{
         "function_declarations": [diagnose_function]
     }]
-
     prompt = (
         "Based on the following conversation between the user and the mental health chatbot, determine whether the user shows signs of psychological health problems. "
         "Please only return a function call, do not output any extra text.\n"
@@ -532,15 +565,11 @@ def diagnose():
             ]
         }
     ]
-
-    model = genai.GenerativeModel("gemini-2.5-flash-preview-04-17")
     response = model.generate_content(
         contents=contents,
         tools=tools,
         generation_config={"temperature": 0}
     )
-
-    # Parse function call
     function_call = None
     try:
         function_call = response.candidates[0].content.parts[0].function_call
@@ -550,6 +579,8 @@ def diagnose():
         has_problem = function_call.args.get("has_psychological_problem", False)
         return jsonify({"has_psychological_problem": has_problem})
     return jsonify({"error": "Diagnosis failed. Please try again."}), 500
+    '''
+
 
 # Error handlers
 # See: https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
