@@ -1,5 +1,5 @@
 from os import write
-
+from functools import wraps
 from flask import render_template, redirect, url_for, flash, request, send_file, send_from_directory,session, jsonify
 from unicodedata import category
 
@@ -20,6 +20,14 @@ import json
 from sqlalchemy.exc import IntegrityError
 import google.generativeai as genai
 
+def admin_only(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if current_user.role != "Admin":
+            return redirect(url_for('home'))
+        return func(*args, **kwargs)
+    return wrapper
+
 @app.route("/")
 def home():
     return render_template('home.html', title="Home")
@@ -34,9 +42,10 @@ def account():
 
 @app.route("/admin")
 @login_required
+@admin_only
 def admin():
-    if current_user.role != "Admin":
-        return redirect(url_for('home'))
+    # if current_user.role != "Admin":
+    #     return redirect(url_for('home'))
     form = ChooseForm()
     q = db.select(User)
     user_lst = db.session.scalars(q)
