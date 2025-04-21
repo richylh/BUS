@@ -36,6 +36,15 @@
             <td>
                 {{ appo.slot }}
             </td>
+            <td>
+                <form action="{{ url_for('cancel_appointment') }}" method="post">
+                    {{ choose_form.csrf_token() }}
+                    {{ choose_form.choice(value=appo.id) }}
+                    <button class="btn" type="submit">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </form>
+            </td>
         </tr>
     {% endfor %}
 </table>
