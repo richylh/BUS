@@ -458,6 +458,8 @@ def download_enrollments_csv():
 @app.route('/chat', methods=['GET', 'POST'])
 @login_required
 def chat():
+    import google.genai as genai
+    from google.genai import types
     from flask import session
     system_instruction = (
         "You are UniSupport Bot, an empathetic AI assistant for UK university students on the UniSupport app. "
@@ -489,9 +491,9 @@ def chat():
             response = client.models.generate_content(
                 model="gemini-2.5-flash-preview-04-17",
                 contents=contents,
-                config=genai.types.GenerateContentConfig(
+                config=types.GenerateContentConfig(
                     system_instruction=system_instruction,
-                    thinking_config=genai.types.ThinkingConfig(thinking_budget=0)
+                    thinking_config=types.ThinkingConfig(thinking_budget=0)
                 )
             )
             ai_text = response.text if hasattr(response, 'text') else str(response)
@@ -506,6 +508,7 @@ def chat():
 @app.route('/diagnose', methods=['POST'])
 def diagnose():
     api_key = "AIzaSyCvpZfGKLrpJsawpiM5KmsX6uu0vJvxru8"
+    import google.generativeai as genai
     genai.configure(api_key=api_key)
 
     # Get all chat history
