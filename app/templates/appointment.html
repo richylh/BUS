@@ -45,8 +45,12 @@
             <td>
                 <div class="slot">
                     <form action="{{ url_for('book') }}" method="post">
-                        {{ form.csrf_token() }}
-                        {{ form.choice(value=slot_id) }}
+                        {% if form is defined and form.csrf_token is defined %}
+                            {{ form.csrf_token() }}
+                        {% endif %}
+                        {% if form is defined %}
+                            {{ form.choice(value=slot_id) }}
+                        {% endif %}
                         <button type="submit"
                             class="w-100 text-start btn">
                             <div>
