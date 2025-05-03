@@ -2,10 +2,27 @@
 {% import "bootstrap_wtf.html" as wtf %}
 
 {% block content %}
-    <div class="container">
-        <h1>Book successful</h1>
-        <p>name: {{ appointment.user.username }}</p>
-        <p>time: {{ appointment.date }} {{ appointment.weekday }} {{ appointment.slot }}</p>
-        <p>appointment: {{appointment.user_name}} </p>
-    </div>
+<h5>Choose a Psychologist</h5>
+    <div class="col-lg-3">
+<table class="table">
+<thead>
+        <tr>
+            <th>Name</th>
+        </tr>
+    </thead>
+    {% for psychologist in list_of_psychologists %}
+        <tr>
+            <td>{{psychologist.username}}</td>
+            {% if current_user.role == "Normal" and current_user.user_type == "user" %}
+            <td><div style = "display: flex"> <form action="{{ url_for('book_an_appointment', psychologist_id=psychologist.id) }}" method="get" style="display:inline;">
+                            <button class="btn btn-dark">Choose</button>
+                 </form>
+                 </div></td>
+            {% endif %}
+        </tr>
+    {% endfor %}
+
+
+</table>
+</div>
 {% endblock %}
