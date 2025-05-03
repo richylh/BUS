@@ -1,7 +1,7 @@
 from wtforms.validators import email
 
 from app import db
-from app.models import User, UniversityEmail, Event
+from app.models import User, UniversityEmail, Event, Psychologist
 import datetime
 
 
@@ -12,7 +12,7 @@ def reset_db():
     users =[
         {'username': 'amy',   'email': 'amy@b.com', 'role': 'Admin', 'pw': 'amy.pw'},
         {'username': 'tom',   'email': 'tom@b.com',                  'pw': 'tom.pw'},
-        {'username': 'yin',   'email': 'yin@b.com', 'role': 'Admin', 'pw': 'yin.pw'},
+        {'username': 'yin',   'email': 'yin@b.com', 'pw': 'yin.pw'},
         {'username': 'jo',    'email': 'jo@b.com',  'role': 'Organiser', 'pw': 'jo.pw'},
         {'username': 'tan', 'email': 'tan@b.com', 'role': 'Organiser', 'pw': 'tan.pw'}
     ]
@@ -33,6 +33,7 @@ def reset_db():
         {'username': 'tom', 'email': 'tom@b.com', 'college':'computer science'},
         {'username': 'yin', 'email': 'yin@b.com', 'college':'computer science'},
         {'username': 'jo', 'email': 'jo@b.com', 'college':'computer science'},
+        {'username': 'tan', 'email': 'tan@b.com', 'college':'computer science'},
         {'username': 'ricky', 'email': 'hxl609@student.bham.ac.uk', 'college': 'computer science'}
     ]
 
@@ -135,5 +136,32 @@ def reset_db():
     for event in university_events:
         e = Event(**event)
         db.session.add(e)
+
+    psychologists = [
+        {
+            'username': 'alex',
+            'email': 'alex@b.com',
+            'availability': 'Available',
+            'pw': 'alex_pw'
+        },
+        {
+            'username': 'beth',
+            'email': 'beth@b.com',
+            'availability': 'Available',
+            'pw': 'beth_pw'
+        },
+        {
+            'username': 'carl',
+            'email': 'carl@b.com',
+            'availability': 'Unavailable',
+            'pw': 'carl_pw'
+        }
+    ]
+
+    for p in psychologists:
+        pw = p.pop('pw')
+        psy = Psychologist(**p)
+        psy.set_password(pw)
+        db.session.add(psy)
 
     db.session.commit()
