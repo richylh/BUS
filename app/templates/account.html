@@ -10,6 +10,7 @@
 
 <p>The email address we have recorded for you is: <b>{{ current_user.email }}</b></p>
 
+{% if current_user.role == "Normal" and current_user.user_type == "user" %}
 <h2 class="mt-5">Your Appointment</h2>
 <table class="table">
     <thead>
@@ -22,6 +23,9 @@
             </th>
             <th>
                 Start
+            </th>
+            <th>
+                Psychologist
             </th>
         </tr>
     </thead>
@@ -37,9 +41,13 @@
                 {{ appo.slot }}
             </td>
             <td>
+                {{ appo.user_name }}
+            </td>
+            <td>
                 <form action="{{ url_for('cancel_appointment') }}" method="post">
                     {{ choose_form.csrf_token() }}
-                    {{ choose_form.choice(value=appo.id) }}
+                    {{ choose_form.appo_id(value=appo.id) }}
+                    {{ choose_form.user_id(value=appo.user_id) }}
                     <button class="btn" type="submit">
                         <i class="bi bi-trash"></i>
                     </button>
@@ -48,6 +56,55 @@
         </tr>
     {% endfor %}
 </table>
+{% endif %}
+
+{% if current_user.role == "Normal" and current_user.user_type == "Psychologist" %}
+
+<h2 class="mt-5">My profile</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                Name
+            </th>
+            <th>
+                Availability
+            </th>
+        </tr>
+    </thead>
+        <tr>
+            <td>
+                {{ psychologist.username }}
+            </td>
+            <td>
+                {{ psychologist.availability }}
+            </td>
+            <td>
+                <form action="{{ url_for('toggle_user_availability') }}" method="post">
+                    {{ form.csrf_token() }}
+                    {{ form.choice(value=current_user.id) }}
+                    <button class="btn" type="submit">
+                        {% if psychologist.availability == "Available" %}
+                        <i class="bi bi-toggle-on"> Change user availability</i>
+                        {% else %}
+                        <i class="bi bi-toggle-off"> Change user availability</i>
+                        {% endif %}
+                    </button>
+                </form>
+            </td>
+        </tr>
+</table>
+
+
+{% endif %}
+
+
+
+
+
+
+
+
 
 <div class="container">
     <h3 class="mt-5">Manage account</h3>
@@ -56,7 +113,7 @@
         <li><a href="{{ url_for('change_email') }}">Update Email</a></li>
     </ul>
 </div>
-{% if current_user.role == "Normal"%}
+{% if current_user.role == "Normal" and current_user.user_type == "user" %}
 <h2>My enrollment</h2>
 <div class="col-lg-3">
 <table class="table">
@@ -90,6 +147,59 @@
 </table>
 </div>
 {% endif %}
+
+{% if current_user.role == "Normal" and current_user.user_type == "Psychologist" %}
+<h2 class="mt-5"> Appointments</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                Date
+            </th>
+            <th>
+                Weekday
+            </th>
+            <th>
+                Start
+            </th>
+            <th>
+                Psychologist
+            </th>
+        </tr>
+    </thead>
+    {% for appo in list_of_appointments %}
+        <tr>
+            <td>
+                {{ appo.date }}
+            </td>
+            <td>
+                {{ appo.weekday }}
+            </td>
+            <td>
+                {{ appo.slot }}
+            </td>
+            <td>
+                {{ appo.user_name }}
+            </td>
+            <td>
+                <form action="{{ url_for('delete_appointment') }}" method="post">
+                    {{ choose_form.csrf_token() }}
+                    {{ choose_form.appo_id(value=appo.id) }}
+                    {{ choose_form.user_id(value=appo.user_id)}}
+                    <button class="btn" type="submit">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </form>
+            </td>
+        </tr>
+    {% endfor %}
+</table>
+{% endif %}
+
+
+
+
+
 
 
 {% endblock %}

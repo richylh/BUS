@@ -44,9 +44,13 @@
             {% set slot_id = j ~ '-' ~ i %}
             <td>
                 <div class="slot">
-                    <form action="{{ url_for('book') }}" method="post">
-                        {{ form.csrf_token() }}
-                        {{ form.choice(value=slot_id) }}
+                    <form action="{{ url_for('booking') }}" method="post">
+                        {% if form is defined and form.csrf_token is defined %}
+                            {{ form.csrf_token() }}
+                        {% endif %}
+                        {% if form is defined %}
+                            {{ form.choice(value=slot_id) }}
+                        {% endif %}
                         <button type="submit"
                             class="w-100 text-start btn">
                             <div>
@@ -67,7 +71,7 @@
     <div>
         <ul>
             {% for appo in unavailable_slots %}
-                <li>{{ appo.weekday }} {{ appo.date }}, {{ appo.slot }}</li>
+                <li>{{ appo.weekday }} {{ appo.date }}, {{ appo.slot }} {{appo.user_name}}</li>
             {% endfor %}
         </ul>
     </div>
