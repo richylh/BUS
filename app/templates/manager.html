@@ -7,7 +7,7 @@
     </div>
 
 <h2>My events</h2>
-<div class="col-lg-3">
+<div class="container">
 <table class="table">
 <thead>
         <tr>
@@ -22,7 +22,7 @@
     {% for event in list_of_events %}
         <tr>
             <td>{{event.title}}</td>
-              <td>{{event.text}}</td>
+            <td>{{event.text}}</td>
             <td>{{event.date}}</td>
             <td>{{event.start_time}}</td>
             <td>{{event.end_time}}</td>

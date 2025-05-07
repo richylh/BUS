@@ -9,6 +9,13 @@
 <p>This page is only available to you as the currently logged-in user</p>
 
 <p>The email address we have recorded for you is: <b>{{ current_user.email }}</b></p>
+<div class="container">
+    <h3 class="mt-5">Manage account</h3>
+    <ul>
+        <li><a href="{{ url_for('change_pw') }}">Change Password</a></li>
+        <li><a href="{{ url_for('change_email') }}">Update Email</a></li>
+    </ul>
+</div>
 
 {% if current_user.role == "Normal" and current_user.user_type == "user" %}
 <h2 class="mt-5">Your Appointment</h2>
@@ -27,6 +34,7 @@
             <th>
                 Psychologist
             </th>
+            <th></th>
         </tr>
     </thead>
     {% for appo in current_user.appointments %}
@@ -58,9 +66,9 @@
 </table>
 {% endif %}
 
-{% if current_user.role == "Normal" and current_user.user_type == "Psychologist" %}
+{% if current_user.user_type == "Psychologist" %}
 
-<h2 class="mt-5">My profile</h2>
+<h2 class="mt-5">My Availability</h2>
 <table class="table">
     <thead>
         <tr>
@@ -70,6 +78,7 @@
             <th>
                 Availability
             </th>
+            <th></th>
         </tr>
     </thead>
         <tr>
@@ -98,24 +107,9 @@
 
 {% endif %}
 
-
-
-
-
-
-
-
-
-<div class="container">
-    <h3 class="mt-5">Manage account</h3>
-    <ul>
-        <li><a href="{{ url_for('change_pw') }}">Change Password</a></li>
-        <li><a href="{{ url_for('change_email') }}">Update Email</a></li>
-    </ul>
-</div>
 {% if current_user.role == "Normal" and current_user.user_type == "user" %}
-<h2>My enrollment</h2>
-<div class="col-lg-3">
+<div class="container mt-5">
+    <h2>My enrollment</h2>
 <table class="table">
 <thead>
         <tr>
@@ -125,12 +119,13 @@
             <th>Start</th>
             <th>End</th>
             <th>Address</th>
+            <th></th>
         </tr>
     </thead>
     {% for enrollment in list_of_enrollments %}
         <tr>
             <td>{{enrollment.title}}</td>
-              <td>{{enrollment.status}}</td>
+            <td>{{enrollment.status}}</td>
             <td>{{enrollment.date}}</td>
             <td>{{enrollment.start_time}}</td>
             <td>{{enrollment.end_time}}</td>
@@ -148,8 +143,8 @@
 </div>
 {% endif %}
 
-{% if current_user.role == "Normal" and current_user.user_type == "Psychologist" %}
-<h2 class="mt-5"> Appointments</h2>
+{% if current_user.user_type == "Psychologist" %}
+<h2 class="mt-5">Psychologist Appointments</h2>
 <table class="table">
     <thead>
         <tr>
@@ -165,6 +160,7 @@
             <th>
                 Psychologist
             </th>
+            <th></th>
         </tr>
     </thead>
     {% for appo in list_of_appointments %}
@@ -195,11 +191,6 @@
     {% endfor %}
 </table>
 {% endif %}
-
-
-
-
-
 
 
 {% endblock %}

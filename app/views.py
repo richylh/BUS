@@ -115,13 +115,7 @@ def toggle_user_type():
         first = db.session.scalars(q).first()
         if not first:
             flash("You can't drop your psychologist role if there are no other psychologist users!", "danger")
-        elif u.id == current_user.id:
-                logout_user()
-                u.user_type = "user"
-                db.session.commit()
-                return redirect(url_for('home'))
         else:
-            # u.role = "Normal" if u.role == "Admin" else "Admin"
             if u.user_type == "user":
                 u.user_type = "Psychologist"
                 #new = Psychologist(id = u.id, username = u.username, email = u.email, password_hash=u.password_hash, user_type= "Psychologist")
@@ -136,6 +130,7 @@ def toggle_user_type():
                 #db.session.add(new)
                 db.session.execute(sa.delete(Psychologist).where(Psychologist.id==u.id))
                 db.session.commit()
+
     return redirect(url_for('admin'))
 
 
@@ -359,14 +354,6 @@ def toggle_user_availability_(psychologist_id):
             db.session.commit()
     return redirect(url_for('admin'))
 
-
-
-
-
-
-
-
-
 @app.route("/booking", methods=['GET', 'POST'])
 def booking():
     # chosen = -1
@@ -428,6 +415,7 @@ def booking():
             elif "date" in error_msg and "slot" in error_msg:
                 flash("Sorry, this slot is unavailable.", "warning")
 
+    flash("Warning! Psychologist cannot book appointment!",'warning')
     return render_template('appointment.html', title='Appointment', schedule=schedule, form=form, unavailable_slots=unavailable_slots)
 
 

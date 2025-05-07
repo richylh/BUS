@@ -3,7 +3,7 @@
 
 {% block content %}
 <h1>Admin</h1>
-<div class="col-lg-9">
+<div class="container">
 <table class="table mt-5">
     <thead>
         <tr>
@@ -12,6 +12,8 @@
             <th>Email</th>
             <th>Role</th>
             <th>User type</th>
+            <th></th>
+            <th></th>
             <th></th>
         </tr>
     </thead>
@@ -31,7 +33,6 @@
                     </button>
                 </form>
             </td>
-            {% if user.user_type != "Psychologist" %}
             <td>
                 <form action="{{ url_for('toggle_user_role') }}" method="post">
                     {{ form.csrf_token() }}
@@ -45,8 +46,6 @@
                     </button>
                 </form>
             </td>
-            {% endif %}
-            {% if user.role == "Normal" %}
             <td>
                 <form action="{{ url_for('toggle_user_type') }}" method="post">
                     {{ form.csrf_token() }}
@@ -60,14 +59,13 @@
                     </button>
                 </form>
             </td>
-            {% endif %}
         </tr>
     {% endfor %}
 </table>
 </div>
 
 <h5>Student enrollments</h5>
-<div class="col-lg-3">
+<div class="col-lg-5">
 <table class="table">
 <thead>
         <tr>
@@ -105,16 +103,12 @@
 <table class="table">
     <thead>
         <tr>
-            <th>
-                Name
-            </th>
-            <th>
-                Availability
-            </th>
+            <th>Name</th>
+            <th>Availability</th>
+            <th></th>
         </tr>
     </thead>
     {% for psychologist in list_of_psychologists %}
-
         <tr>
             <td>
                 {{ psychologist.username }}
@@ -154,6 +148,7 @@
             <th>
                 Psychologist
             </th>
+            <th></th>
         </tr>
     </thead>
     {% for appo in list_of_appointments %}

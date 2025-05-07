@@ -71,7 +71,7 @@
     <div>
         <ul>
             {% for appo in unavailable_slots %}
-                <li>{{ appo.weekday }} {{ appo.date }}, {{ appo.slot }} {{appo.user_name}}</li>
+                <li>{{ appo.weekday }} {{ appo.date }}, {{ appo.slot }} - booked with {{appo.user_name}}</li>
             {% endfor %}
         </ul>
     </div>
