@@ -3,7 +3,7 @@ import sqlalchemy as sa
 import sqlalchemy.orm as so
 from flask_login import UserMixin
 from sqlalchemy import ForeignKey, UniqueConstraint
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, Mapped
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import db, login
 from dataclasses import dataclass
@@ -20,7 +20,14 @@ class User(UserMixin, db.Model):
     role: so.Mapped[str] = so.mapped_column(sa.String(10), default="Normal")
     events: so.Mapped[list['Event']] = relationship(back_populates='user', cascade='all, delete-orphan')
     appointments: so.Mapped[list['Appointment']] = relationship(back_populates='user', cascade='all, delete-orphan')
+    logs: so.Mapped[list['BookingLog']] = relationship(back_populates='user', cascade='all, delete-orphan')
     enrollments: so.Mapped[list['Enrollment']] = relationship(back_populates='user', cascade='all, delete-orphan')
+    user_type: Mapped[str] = so.mapped_column(sa.String(64), default="user")
+    __mapper_args__ = {
+        "polymorphic_identity": "user",
+        "polymorphic_on": user_type
+    }
+
 
     def __repr__(self):
         pwh= 'None' if not self.password_hash else f'...{self.password_hash[-5:]}'
@@ -31,6 +38,17 @@ class User(UserMixin, db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+
+class Psychologist(User):
+    __tablename__ = 'Psychologist'
+    id: so.Mapped[int] = so.mapped_column(sa.ForeignKey('users.id'), primary_key=True)
+    availability: so.Mapped[str] = so.mapped_column(sa.String(64), default="Available")
+    #appointment: so.Mapped[str] = so.mapped_column(sa.String(64), default="Unbooked")
+
+    __mapper_args__ = {
+        "polymorphic_identity": "Psychologist",
+    }
 
 @login.user_loader
 def load_user(id):
@@ -86,16 +104,15 @@ class Enrollment(db.Model):
 
 class Appointment(db.Model):
     __tablename__ = 'appointments'
-    __table_args__ = (
-        UniqueConstraint('date', 'slot', name='unique_slot_per_time'),
-    )
-
-    id: so.Mapped[int] = so.mapped_column(primary_key=True)
-    date: so.Mapped[datetime.date] = so.mapped_column(sa.Date)
+    new_id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    id: so.Mapped[int] = so.mapped_column(sa.String(64))
+    date: so.Mapped[str] = so.mapped_column(sa.String(64))
     weekday: so.Mapped[str] = so.mapped_column(sa.String(16))
-    slot: so.Mapped[datetime.time] = so.mapped_column(sa.Time)
+    slot: so.Mapped[str] = so.mapped_column(sa.String(64))
     user_id: so.Mapped[int] = so.mapped_column(ForeignKey('users.id'), index=True, unique=True)
     user: so.Mapped['User'] = relationship(back_populates='appointments')
+    user_name: so.Mapped[str] = so.mapped_column(sa.String(64))
+
     # status: so.Mapped[str] = so.mapped_column(sa.String(64), default='Open')
 
 class UniversityEmail(db.Model):
@@ -105,4 +122,12 @@ class UniversityEmail(db.Model):
     username: so.Mapped[str] = so.mapped_column(sa.String(64))
     college: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
 
+class BookingLog(db.Model):
+    __tablename__ = 'logs'
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    date: so.Mapped[str] = so.mapped_column(sa.String(64))
+    weekday: so.Mapped[str] = so.mapped_column(sa.String(16))
+    slot: so.Mapped[str] = so.mapped_column(sa.String(64))
+    user_id: so.Mapped[int] = so.mapped_column(ForeignKey('users.id'), index=True, unique=True)
+    user: so.Mapped['User'] = relationship(back_populates='logs')
 

@@ -69,7 +69,7 @@ def test_organiser_add_event(test_client, test_database, monkeypatch):
         assert event.address == 'Test Address'
 
 
-# Negative test: Test the process of adding an event by the organiser
+# Negative test: Test the invalid process of enrolling for the same event twice by a user
 def test_user_enroll_twice(test_client, test_database):
     with app.app_context():
         user = User(username='normaluser', email='normal@example.com', role='Normal')

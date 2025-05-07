@@ -11,7 +11,7 @@
             <th>Username</th>
             <th>Email</th>
             <th>Role</th>
-            <th></th>
+            <th>User type</th>
             <th></th>
         </tr>
     </thead>
@@ -21,6 +21,7 @@
             <td>{{ user.username }}</td>
             <td>{{ user.email }}</td>
             <td>{{ user.role }}</td>
+            <td>{{user.user_type}}</td>
             <td>
                 <form action="{{ url_for('delete_user') }}" method="post">
                     {{ form.csrf_token() }}
@@ -30,6 +31,7 @@
                     </button>
                 </form>
             </td>
+            {% if user.user_type != "Psychologist" %}
             <td>
                 <form action="{{ url_for('toggle_user_role') }}" method="post">
                     {{ form.csrf_token() }}
@@ -43,6 +45,22 @@
                     </button>
                 </form>
             </td>
+            {% endif %}
+            {% if user.role == "Normal" %}
+            <td>
+                <form action="{{ url_for('toggle_user_type') }}" method="post">
+                    {{ form.csrf_token() }}
+                    {{ form.choice(value=user.id) }}
+                    <button class="btn" type="submit">
+                        {% if user.user_type == "Psychologist" %}
+                        <i class="bi bi-toggle-on"> Switch user type</i>
+                        {% else %}
+                        <i class="bi bi-toggle-off"> Switch user type</i>
+                        {% endif %}
+                    </button>
+                </form>
+            </td>
+            {% endif %}
         </tr>
     {% endfor %}
 </table>
@@ -80,5 +98,97 @@
         <button class="btn btn-dark" type="submit">Download Enrollments Statistics</button>
     </form>
 </div>
+
+
+
+<h2 class="mt-5">Psychologists' profile</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                Name
+            </th>
+            <th>
+                Availability
+            </th>
+        </tr>
+    </thead>
+    {% for psychologist in list_of_psychologists %}
+
+        <tr>
+            <td>
+                {{ psychologist.username }}
+            </td>
+            <td>
+                {{ psychologist.availability }}
+            </td>
+            <td>
+                <form action="{{ url_for('toggle_user_availability_', psychologist_id = psychologist.id) }}" method="post">
+                    {{ form.csrf_token() }}
+                    <button class="btn" type="submit">
+                        {% if psychologist.availability == "Available" %}
+                        <i class="bi bi-toggle-on"> Change user availability</i>
+                        {% else %}
+                        <i class="bi bi-toggle-off"> Change user availability</i>
+                        {% endif %}
+                    </button>
+                </form>
+            </td>
+        </tr>
+    {% endfor %}
+</table>
+
+<h2 class="mt-5"> Appointments</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                Date
+            </th>
+            <th>
+                Weekday
+            </th>
+            <th>
+                Start
+            </th>
+            <th>
+                Psychologist
+            </th>
+        </tr>
+    </thead>
+    {% for appo in list_of_appointments %}
+        <tr>
+            <td>
+                {{ appo.date }}
+            </td>
+            <td>
+                {{ appo.weekday }}
+            </td>
+            <td>
+                {{ appo.slot }}
+            </td>
+            <td>
+                {{ appo.user_name }}
+            </td>
+            <td>
+                <form action="{{ url_for('delete_appointment_') }}" method="post">
+                    {{ choose_form.csrf_token() }}
+                    {{ choose_form.appo_id(value=appo.id) }}
+                    {{ choose_form.user_id(value=appo.user_id)}}
+                    <button class="btn" type="submit">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </form>
+            </td>
+        </tr>
+    {% endfor %}
+</table>
+
+
+
+
+
+
+
 
 {% endblock %}

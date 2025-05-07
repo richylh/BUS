@@ -1,7 +1,7 @@
 import pytest
 from flask import session, url_for
 from app import app, db
-from app.models import User, Appointment
+from app.models import User, Appointment, Psychologist, BookingLog
 import sqlalchemy as sa
 import datetime
 
@@ -24,9 +24,29 @@ def test_valid_appointment(test_client, test_database, monkeypatch):
     
     monkeypatch.setattr('flask.render_template', mock_render_template)
     with app.app_context():
-        user = User(username='testuser', email='test@example.com')
+        user = User(username='testuser', email='test@example.com', user_type="user", role="Normal")
         user.set_password('Test@123')
         db.session.add(user)
+        
+        psychologist = User(username='psychdoctor', email='psych@example.com', user_type="Psychologist")
+        psychologist.set_password('Test@123')
+        db.session.add(psychologist)
+        db.session.commit()
+        
+        db.session.execute(sa.insert(Psychologist.__table__).values(id=psychologist.id))
+        
+        today = datetime.datetime.today().date()
+        date_str = today.strftime('%Y-%m-%d')
+        slot = '09:00'
+        weekday = today.strftime('%A')
+        
+        booking_log = BookingLog(
+            date=date_str,
+            weekday=weekday,
+            slot=slot,
+            user_id=user.id
+        )
+        db.session.add(booking_log)
         db.session.commit()
     
     response = test_client.post('/login', data={
@@ -44,10 +64,7 @@ def test_valid_appointment(test_client, test_database, monkeypatch):
     assert response.status_code == 200
     assert b'Appointment' in response.data
     
-    response = test_client.post('/book', data={
-        'choice': '0-0',
-        'submit': True
-    }, follow_redirects=True)
+    response = test_client.post('/book_an_appointment/2', follow_redirects=True)
     
     assert response.status_code == 200
     assert b'Book successful' in response.data
@@ -81,31 +98,50 @@ def test_invalid_appointment(test_client, test_database, monkeypatch):
     
     user1_id = None
     user2_id = None
+    psychologist_id = None
     
     with app.app_context():
         db.session.execute(sa.delete(Appointment))
         
-        user1 = User(username='user1', email='user1@example.com')
+        user1 = User(username='user1', email='user1@example.com', user_type="user", role="Normal")
         user1.set_password('Test@123')
-        user2 = User(username='user2', email='user2@example.com')
+        user2 = User(username='user2', email='user2@example.com', user_type="user", role="Normal")
         user2.set_password('Test@123')
+        
+        psychologist = User(username='psychdoctor', email='psych@example.com', user_type="Psychologist")
+        psychologist.set_password('Test@123')
+        
         db.session.add(user1)
         db.session.add(user2)
+        db.session.add(psychologist)
         db.session.commit()
         
         user1_id = user1.id
         user2_id = user2.id
+        psychologist_id = psychologist.id
+        
+        db.session.execute(sa.insert(Psychologist.__table__).values(id=psychologist.id))
         
         today = datetime.datetime.today().date()
-        date = today
-        slot = datetime.datetime.strptime('09:00', '%H:%M').time()
+        date_str = today.strftime('%Y-%m-%d')
+        slot = '09:00'
         weekday = today.strftime('%A')
         
-        appointment = Appointment(
-            user_id=user1_id,
-            date=date,
+        booking_log = BookingLog(
+            date=date_str,
             weekday=weekday,
-            slot=slot
+            slot=slot,
+            user_id=user1.id
+        )
+        db.session.add(booking_log)
+        
+        appointment = Appointment(
+            id=psychologist_id,
+            user_id=user1_id,
+            date=date_str,
+            weekday=weekday,
+            slot=slot,
+            user_name=user1.username
         )
         db.session.add(appointment)
         db.session.commit()
@@ -121,10 +157,7 @@ def test_invalid_appointment(test_client, test_database, monkeypatch):
     response = test_client.get('/appointments')
     assert response.status_code == 200
     
-    response = test_client.post('/book', data={
-        'choice': '0-0',
-        'submit': True
-    }, follow_redirects=True)
+    response = test_client.post(f'/book_an_appointment/{psychologist_id}', follow_redirects=True)
     
     assert response.status_code == 200
     

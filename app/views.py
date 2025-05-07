@@ -2,9 +2,10 @@ from os import write
 from functools import wraps
 from flask import render_template, redirect, url_for, flash, request, send_file, send_from_directory,session, jsonify
 from unicodedata import category
+from urllib3.connection import port_by_scheme
 
 from app import app
-from app.models import User, UniversityEmail, Appointment, Event, Enrollment
+from app.models import User, UniversityEmail, Appointment, Event, Enrollment, Psychologist, BookingLog
 from app.forms import ChooseForm, LoginForm, ChangePasswordForm, ChangeEmailForm, RegisterForm, RegisterEmail, \
     RegisterEmailVerify, EventsForm
 from flask_login import current_user, login_user, logout_user, login_required, fresh_login_required
@@ -19,7 +20,6 @@ import random
 import json
 from sqlalchemy.exc import IntegrityError
 import google.generativeai as genai
-
 def admin_only(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -35,10 +35,14 @@ def home():
 @app.route("/account")
 @login_required
 def account():
+    form = ChooseForm()
     choose_form = ChooseForm()
     q = db.select(Enrollment).where(Enrollment.username == current_user.username)
     list_of_enrollments = db.session.scalars(q)
-    return render_template('account.html', title="Account", list_of_enrollments = list_of_enrollments, choose_form = choose_form)
+    psychologist = db.session.get(Psychologist, current_user.id)
+    p = db.select(Appointment).where(Appointment.user_name == current_user.username)
+    list_of_appointments = db.session.scalars(p)
+    return render_template('account.html', title="Account", list_of_enrollments = list_of_enrollments, choose_form = choose_form, psychologist =psychologist, form = form, list_of_appointments = list_of_appointments)
 
 @app.route("/admin")
 @login_required
@@ -51,7 +55,11 @@ def admin():
     user_lst = db.session.scalars(q)
     q = db.select(Enrollment)
     list_of_enrollments = db.session.scalars(q)
-    return render_template('admin.html', title="Admin", user_lst=user_lst, form=form, list_of_enrollments = list_of_enrollments)
+    p = db.select(Psychologist)
+    list_of_psychologists = db.session.scalars(p)
+    p = db.select(Appointment)
+    list_of_appointments = db.session.scalars(p)
+    return render_template('admin.html', title="Admin", user_lst=user_lst, form=form, list_of_enrollments = list_of_enrollments, list_of_psychologists = list_of_psychologists, list_of_appointments = list_of_appointments, choose_form = form)
 
 @app.route('/delete_user', methods=['POST'])
 def delete_user():
@@ -96,6 +104,44 @@ def toggle_user_role():
                 u.role = "Normal"
             db.session.commit()
     return redirect(url_for('admin'))
+
+
+@app.route('/toggle_user_type', methods=['POST'])
+def toggle_user_type():
+    form = ChooseForm()
+    if form.validate_on_submit():
+        u = db.session.get(User, int(form.choice.data))
+        q = db.select(User).where((User.user_type == "Psychologist") & (User.id != u.id))
+        first = db.session.scalars(q).first()
+        if not first:
+            flash("You can't drop your psychologist role if there are no other psychologist users!", "danger")
+        elif u.id == current_user.id:
+                logout_user()
+                u.user_type = "user"
+                db.session.commit()
+                return redirect(url_for('home'))
+        else:
+            # u.role = "Normal" if u.role == "Admin" else "Admin"
+            if u.user_type == "user":
+                u.user_type = "Psychologist"
+                #new = Psychologist(id = u.id, username = u.username, email = u.email, password_hash=u.password_hash, user_type= "Psychologist")
+                #db.session.delete(u)
+                #db.session.add(new)
+                db.session.execute(sa.insert(Psychologist.__table__).values(id=u.id))
+                db.session.commit()
+            elif u.user_type == "Psychologist":
+                u.user_type = "user"
+               #new = User(id = u.id, username = u.username, email = u.email, password_hash=u.password_hash)
+                #db.session.delete(u)
+                #db.session.add(new)
+                db.session.execute(sa.delete(Psychologist).where(Psychologist.id==u.id))
+                db.session.commit()
+    return redirect(url_for('admin'))
+
+
+
+
+
 
 @app.route("/change_pw",methods=['POST','GET'])
 def change_pw():
@@ -237,17 +283,103 @@ def appointments():
     unavailable_slots = check_availability()
     return render_template('appointment.html', title='Appointment', schedule=schedule, form=form, unavailable_slots=unavailable_slots)
 
-@app.route("/book", methods=['GET', 'POST'])
-def book():
+
+
+
+@app.route('/toggle_user_availability', methods=['POST'])
+def toggle_user_availability():
+    form = ChooseForm()
+    if form.validate_on_submit():
+        u = db.session.get(Psychologist, int(form.choice.data))
+        #q = db.select(User).where((User.user_type == "Psychologist") & (User.id != u.id))
+        #first = db.session.scalars(q).first()
+        #if not first:
+            #flash("You can't drop your psychologist role if there are no other psychologist users!", "danger")
+        #elif u.id == current_user.id:
+                #logout_user()
+                #u.user_type = "user"
+                #db.session.commit()
+                #return redirect(url_for('home'))
+        #else:
+            # u.role = "Normal" if u.role == "Admin" else "Admin"
+        if u.availability == "Available":
+            u.availability = "Unavailable"
+
+            Appointment.query.filter_by(id=u.id).delete()
+            BookingLog.query.filter_by(id=u.id).delete()
+            # new = Psychologist(id = u.id, username = u.username, email = u.email, password_hash=u.password_hash, user_type= "Psychologist")
+            # db.session.delete(u)
+            # db.session.add(new)
+            #db.session.execute(sa.insert(Psychologist.__table__).values(id=u.id))
+            db.session.commit()
+        elif u.availability == "Unavailable":
+            u.availability = "Available"
+            # new = User(id = u.id, username = u.username, email = u.email, password_hash=u.password_hash)
+            # db.session.delete(u)
+            # db.session.add(new)
+            #db.session.execute(sa.delete(Psychologist).where(Psychologist.id == u.id))
+            db.session.commit()
+    return redirect(url_for('account'))
+
+
+
+
+@app.route('/toggle_user_availability_/<int:psychologist_id>', methods=['POST'])
+def toggle_user_availability_(psychologist_id):
+    form = ChooseForm()
+    if form.validate_on_submit():
+        u = db.session.get(Psychologist, int(psychologist_id))
+        #q = db.select(User).where((User.user_type == "Psychologist") & (User.id != u.id))
+        #first = db.session.scalars(q).first()
+        #if not first:
+            #flash("You can't drop your psychologist role if there are no other psychologist users!", "danger")
+        #elif u.id == current_user.id:
+                #logout_user()
+                #u.user_type = "user"
+                #db.session.commit()
+                #return redirect(url_for('home'))
+        #else:
+            # u.role = "Normal" if u.role == "Admin" else "Admin"
+        if u.availability == "Available":
+            u.availability = "Unavailable"
+
+            Appointment.query.filter_by(id=u.id).delete()
+            BookingLog.query.filter_by(id=u.id).delete()
+            # new = Psychologist(id = u.id, username = u.username, email = u.email, password_hash=u.password_hash, user_type= "Psychologist")
+            # db.session.delete(u)
+            # db.session.add(new)
+            #db.session.execute(sa.insert(Psychologist.__table__).values(id=u.id))
+            db.session.commit()
+        elif u.availability == "Unavailable":
+            u.availability = "Available"
+            # new = User(id = u.id, username = u.username, email = u.email, password_hash=u.password_hash)
+            # db.session.delete(u)
+            # db.session.add(new)
+            #db.session.execute(sa.delete(Psychologist).where(Psychologist.id == u.id))
+            db.session.commit()
+    return redirect(url_for('admin'))
+
+
+
+
+
+
+
+
+
+@app.route("/booking", methods=['GET', 'POST'])
+def booking():
     # chosen = -1
     form = ChooseForm()
     schedule = generate_schedule()
     unavailable_slots = check_availability()
+    q = db.select(Psychologist).where(Psychologist.availability == "Available")
+    list_of_psychologists = db.session.scalars(q)
     if not current_user.is_authenticated:
         flash("Please log in to book an appointment.", "warning")
         return render_template('appointment.html', title='Appointment', schedule=schedule, form=form, unavailable_slots=unavailable_slots)
 
-    if form.validate_on_submit():
+    if form.validate_on_submit() and current_user.user_type == "user" and current_user.role == "Normal":
         slot_id = form.choice.data
         # previous = form.current_choice.data or -1
         # if slot_id == previous:
@@ -268,18 +400,25 @@ def book():
         this_year = datetime.datetime.today().year
         date = datetime.datetime.strptime(date_str, "%m-%d").date().replace(year=this_year)
         slot = datetime.datetime.strptime(slot_str, "%H:%M").time()
+        date_str = date.strftime("%Y-%m-%d")
+        slot_str = slot.strftime("%H:%M")
+        data_ = BookingLog.query.filter_by(user_id=current_user.id).first()
+        appointment_ = Appointment.query.filter_by(user_id = current_user.id).first()
+        if data_ and not appointment_:
+            db.session.delete(data_)
+            db.session.commit()
 
         try:
             # schedule[day_index]["slots"][slot_index]["availability"] = False
-            appointment = Appointment(
+            appointment = BookingLog(
                 user_id=current_user.id,
-                date=date,
+                date=date_str,
                 weekday=weekday,
-                slot=slot
+                slot=slot_str
             )
-            current_user.appointments.append(appointment)
+            db.session.add(appointment)
             db.session.commit()
-            return render_template('appointment_booked.html', title = 'Appointment Booked', appointment=appointment)
+            return render_template('choose_appointment.html', title = 'Appointment Booking', list_of_psychologists = list_of_psychologists )
 
         except IntegrityError as e:
             db.session.rollback()
@@ -291,14 +430,51 @@ def book():
 
     return render_template('appointment.html', title='Appointment', schedule=schedule, form=form, unavailable_slots=unavailable_slots)
 
+
+
+
+
 @app.route("/cancel_appointment", methods=['POST'])
 def cancel_appointment():
     form = ChooseForm()
     if form.validate_on_submit():
-        appo = db.session.get(Appointment, form.choice.data)
+        appo = Appointment.query.filter_by(id = form.appo_id.data, user_id = form.user_id.data).first()
+        log = BookingLog.query.filter_by(date= appo.date , slot=appo.slot).first()
+        db.session.delete(log)
         db.session.delete(appo)
         db.session.commit()
     return redirect(url_for('account'))
+
+
+
+
+@app.route("/delete_appointment", methods=['POST'])
+def delete_appointment():
+    form = ChooseForm()
+    if form.validate_on_submit():
+        appo = Appointment.query.filter_by(id = form.appo_id.data, user_id = form.user_id.data).first()
+        log = BookingLog.query.filter_by(date= appo.date , slot=appo.slot).first()
+        db.session.delete(log)
+        db.session.delete(appo)
+        db.session.commit()
+    return redirect(url_for('account'))
+
+
+
+
+@app.route("/delete_appointment_", methods=['POST'])
+def delete_appointment_():
+    form = ChooseForm()
+    if form.validate_on_submit():
+        appo = Appointment.query.filter_by(id = form.appo_id.data, user_id = form.user_id.data).first()
+        log = BookingLog.query.filter_by(date= appo.date , slot=appo.slot).first()
+        db.session.delete(log)
+        db.session.delete(appo)
+        db.session.commit()
+    return redirect(url_for('admin'))
+
+
+
 
 @app.route('/manager', methods=['GET', 'POST'])
 def manager():
@@ -309,9 +485,11 @@ def manager():
         db.session.add(new_event)
         db.session.commit()
         return redirect(url_for('manager'))
+    q = db.select(Enrollment)
+    list_of_enrollments = db.session.scalars(q)
     q = db.select(Event).where(Event.username == current_user.username)
     list_of_events = db.session.scalars(q)
-    return render_template('manager.html', title="Event Management", form=form, list_of_events=list_of_events,
+    return render_template('manager.html', title="Event Management", form=form, list_of_events=list_of_events, list_of_enrollments = list_of_enrollments,
                            choose_form=choose_form)
 
 
@@ -389,7 +567,8 @@ def edit_event(event_id):
 @app.route("/enrollment/<int:event_id>", methods=['GET','POST'])
 def enrollment(event_id):
     event_first = db.session.get(Event, event_id)
-    items = Enrollment.query.filter_by(title = event_first.title).all()
+    items = Enrollment.query.filter_by(title = event_first.title, username = current_user.username).all()
+
     if not items:
         enroll = Enrollment(title=event_first.title, username=current_user.username,  date = event_first.date, start_time = event_first.start_time, end_time = event_first.end_time, address = event_first.address )
         db.session.add(enroll)
@@ -402,6 +581,32 @@ def enrollment(event_id):
 
 
 
+
+@app.route("/book_an_appointment/<int:psychologist_id>", methods=['GET','POST'])
+def book_an_appointment(psychologist_id):
+    psychologist_first = db.session.get(Psychologist, psychologist_id)
+    latest = db.session.query(BookingLog).order_by(BookingLog.id.desc()).first()
+    data_ = Appointment.query.filter_by(id = psychologist_id, date= latest.date , slot=latest.slot).all()
+    if not data_:
+        appointment = Appointment(
+            id=psychologist_first.id,
+            user_id = current_user.id,
+            date=latest.date,
+            weekday=latest.weekday,
+            slot=latest.slot,
+            user_name = psychologist_first.username
+        )
+        #latest.id = psychologist_id
+        db.session.add(appointment)
+        db.session.commit()
+        flash('Successfully booked the appointment!', 'success')
+        return render_template('appointment_booked.html', title = 'Appointment Booked', appointment=appointment)
+
+    else:
+        db.session.delete(latest)
+        db.session.commit()
+        flash('Appointment has been booked', 'warning')
+        return redirect(url_for('booking'))
 
 
 @app.route("/delete_enrollment", methods=['POST'])
@@ -472,7 +677,7 @@ def chat():
         "Always prioritize user safety and stay within your defined role."
     )
     if request.method == 'GET':
-        session['chat_history'] = []  
+        session['chat_history'] = []
         return render_template('chat.html', title='Chat')
     if request.method == 'POST':
         data = request.get_json()
